@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOL Migration Radar v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#07090d;
+  --bg2:#0c1018;
+  --bg3:#111923;
+  --bg4:#161e29;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.12);
+  --text:#dde4f0;
+  --muted:#5a6a82;
+  --dim:#2e3d52;
+  --green:#21d07a;
+  --green-d:rgba(33,208,122,0.1);
+  --green-b:rgba(33,208,122,0.22);
+  --amber:#f5a623;
+  --amber-d:rgba(245,166,35,0.1);
+  --amber-b:rgba(245,166,35,0.22);
+  --red:#f0455a;
+  --red-d:rgba(240,69,90,0.1);
+  --red-b:rgba(240,69,90,0.22);
+  --purple:#a78bfa;
+  --purple-d:rgba(167,139,250,0.1);
+  --blue:#3b9eff;
+  --teal:#14d4bc;
+  --teal-d:rgba(20,212,188,0.08);
+  --pink:#f43fa0;
+  --accent:#00ff88;
+  --accent-d:rgba(0,255,136,0.07);
+
+  /* viral tier colours */
+  --viral:#ff3d71;
+  --viral-d:rgba(255,61,113,0.12);
+  --trending:#f5a623;
+  --trending-d:rgba(245,166,35,0.12);
+  --growing:#21d07a;
+  --growing-d:rgba(33,208,122,0.1);
+  --low:#5a6a82;
+  --low-d:rgba(90,106,130,0.1);
+}
+
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);pointer-events:none;z-index:999}
+
+/* ── HEADER ── */
+header{
+  position:sticky;top:0;z-index:200;
+  height:54px;padding:0 1.5rem;
+  display:flex;align-items:center;gap:1.25rem;
+  background:rgba(7,9,13,0.94);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;color:var(--accent);white-space:nowrap;letter-spacing:-0.01em}
+.logo em{color:var(--muted);font-style:normal;font-weight:700}
+.hbar{width:1px;height:20px;background:var(--border2);flex-shrink:0}
+.hmeta{display:flex;align-items:center;gap:1.1rem;margin-left:auto;font-size:.7rem;color:var(--muted)}
+.live{display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(33,208,122,.4)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(33,208,122,0)}}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;border:1px solid var(--border2);border-radius:4px;background:transparent;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.22)}
+.btn:active{transform:scale(.97)}
+.btn.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn-accent{border-color:rgba(0,255,136,.35);color:var(--accent)}
+.btn-accent:hover{background:var(--accent-d)}
+
+/* ── LOADING OVERLAY ── */
+#ov{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(7,9,13,.88);backdrop-filter:blur(6px);transition:opacity .3s}
+#ov.gone{opacity:0;pointer-events:none}
+.ov-logo{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--accent);letter-spacing:-.02em}
+.ov-bar{width:200px;height:2px;background:var(--border2);border-radius:1px;overflow:hidden}
+.ov-fill{height:100%;background:var(--accent);border-radius:1px;animation:lbar 1.6s ease-in-out infinite}
+@keyframes lbar{0%{width:0%;margin-left:0%}50%{width:55%;margin-left:22%}100%{width:0%;margin-left:100%}}
+.ov-msg{font-size:.72rem;color:var(--muted)}
+
+/* ── MAIN ── */
+main{padding:1.25rem 1.5rem 5rem;max-width:1500px;margin:0 auto}
+
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1.25rem}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:11px 14px;transition:border-color .2s}
+.sc:hover{border-color:var(--border2)}
+.sc-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.sc-val{font-family:'Syne',sans-serif;font-size:1.45rem;font-weight:700;color:var(--text)}
+.sc-sub{font-size:.6rem;color:var(--dim);margin-top:1px}
+.sc-green .sc-val{color:var(--green)} .sc-green{border-color:rgba(33,208,122,.15)!important}
+.sc-amber .sc-val{color:var(--amber)} .sc-amber{border-color:rgba(245,166,35,.15)!important}
+.sc-red   .sc-val{color:var(--red)}   .sc-red{border-color:rgba(240,69,90,.15)!important}
+.sc-purple .sc-val{color:var(--purple)} .sc-purple{border-color:rgba(167,139,250,.15)!important}
+.sc-blue  .sc-val{color:var(--blue)}  .sc-blue{border-color:rgba(59,158,255,.15)!important}
+
+/* ── VIRAL LEGEND ── */
+.vlegend{display:flex;gap:8px;margin-bottom:1.1rem;flex-wrap:wrap;align-items:center}
+.vlegend-label{font-size:.62rem;color:var(--muted);margin-right:4px}
+.vbadge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:3px;font-size:.65rem;font-weight:600;letter-spacing:.04em}
+.vb-viral   {background:var(--viral-d);   color:var(--viral);   border:1px solid rgba(255,61,113,.3)}
+.vb-trending{background:var(--trending-d);color:var(--trending);border:1px solid rgba(245,166,35,.3)}
+.vb-growing {background:var(--growing-d); color:var(--growing); border:1px solid rgba(33,208,122,.25)}
+.vb-low     {background:var(--low-d);     color:var(--low);     border:1px solid rgba(90,106,130,.25)}
+
+/* ── CONTROLS ── */
+.controls{display:flex;align-items:center;gap:8px;margin-bottom:1.1rem;flex-wrap:wrap}
+.ctrl-label{font-size:.62rem;color:var(--muted)}
+.srt{padding:3px 10px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.67rem;cursor:pointer;transition:all .15s}
+.srt:hover{color:var(--text);border-color:var(--border2)}
+.srt.on{color:var(--accent);border-color:var(--accent);background:var(--accent-d)}
+.spacer{flex:1}
+
+/* ── BANNER ── */
+.banner{border-radius:5px;padding:9px 13px;font-size:.72rem;margin-bottom:1rem;border:1px solid;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.bwarn{background:rgba(245,166,35,.08);border-color:rgba(245,166,35,.3);color:#fcd34d}
+.binfo{background:rgba(59,158,255,.08);border-color:rgba(59,158,255,.3);color:#93c5fd}
+
+/* ── SECTION ── */
+.section{margin-bottom:2rem}
+.section-head{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0}
+.atag{display:inline-flex;align-items:center;gap:5px;font-size:.67rem;font-weight:700;padding:3px 10px;border-radius:3px;letter-spacing:.05em;text-transform:uppercase}
+.a1-3  {background:var(--purple-d);color:var(--purple);border:1px solid rgba(167,139,250,.28)}
+.a3-6  {background:var(--teal-d);  color:var(--teal);  border:1px solid rgba(20,212,188,.28)}
+.a6-12 {background:var(--green-d); color:var(--green);border:1px solid rgba(33,208,122,.25)}
+.a12-18{background:var(--amber-d); color:var(--amber);border:1px solid rgba(245,166,35,.25)}
+.a18-24{background:var(--red-d);   color:var(--red);  border:1px solid rgba(240,69,90,.25)}
+.sdesc{font-size:.62rem;color:var(--dim)}
+.scnt{font-size:.67rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+
+/* ── TABLE ── */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.72rem;min-width:860px}
+thead th{text-align:left;padding:7px 9px;color:var(--muted);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:400;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+thead th:hover{color:var(--text)}
+thead th.sa{color:var(--accent)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;animation:rin .18s ease both}
+@keyframes rin{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody tr:last-child{border-bottom:none}
+td{padding:8px 9px;vertical-align:middle;white-space:nowrap}
+
+.tname{font-weight:500;color:var(--text);font-size:.78rem}
+.tsym{color:var(--muted);font-size:.62rem;margin-left:3px}
+.taddr{color:var(--dim);font-size:.6rem;margin-top:2px;cursor:pointer;transition:color .15s}
+.taddr:hover{color:var(--muted)}
+.srcbadge{display:inline-block;font-size:.58rem;padding:1px 6px;border-radius:2px;margin-top:3px;font-weight:500;letter-spacing:.03em}
+.sg{background:rgba(59,158,255,.13);color:#60a5fa}
+.sp{background:rgba(240,69,90,.11);color:#fb7185}
+.sd{background:rgba(20,212,188,.11);color:#2dd4bf}
+
+.up{color:var(--green)} .dn{color:var(--red)} .neu{color:var(--muted)}
+.mc{font-weight:500;color:var(--text)}
+.liq{color:var(--muted)}
+
+/* viral score cell */
+.vs-wrap{display:flex;align-items:center;gap:7px}
+.vs-num{font-weight:600;font-size:.78rem;min-width:26px}
+.vs-bar-bg{width:48px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;flex-shrink:0}
+.vs-bar{height:100%;border-radius:2px;transition:width .5s ease}
+.vtier-4 .vs-num{color:var(--viral)}   .vtier-4 .vs-bar{background:var(--viral)}
+.vtier-3 .vs-num{color:var(--trending)}.vtier-3 .vs-bar{background:var(--trending)}
+.vtier-2 .vs-num{color:var(--growing)} .vtier-2 .vs-bar{background:var(--growing)}
+.vtier-1 .vs-num{color:var(--low)}     .vtier-1 .vs-bar{background:var(--low)}
+
+.vbadge-sm{font-size:.58rem;font-weight:600;padding:2px 7px;border-radius:2px;white-space:nowrap}
+
+.boost-icon{font-size:.65rem;color:var(--pink);margin-left:3px;vertical-align:middle}
+
+.vbar{width:52px;height:3px;background:var(--border);border-radius:2px;margin-top:3px;overflow:hidden}
+.vbarfill{height:100%;border-radius:2px;background:var(--teal)}
+
+.links{display:flex;gap:5px}
+.xl{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border:1px solid var(--border);border-radius:3px;color:var(--muted);text-decoration:none;font-size:.62rem;transition:all .15s;white-space:nowrap}
+.xl:hover{border-color:var(--border2);color:var(--text);background:rgba(255,255,255,.03)}
+.xl.dx:hover{color:var(--teal);border-color:rgba(20,212,188,.35)}
+.xl.gm:hover{color:var(--blue);border-color:rgba(59,158,255,.35)}
+.xl.tw:hover{color:#60a5fa;border-color:rgba(96,165,250,.35)}
+
+.empty td{text-align:center;padding:2.5rem;color:var(--dim);font-size:.72rem}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 13px;font-size:.7rem;color:var(--accent);z-index:600;transform:translateY(50px);opacity:0;transition:all .22s}
+#toast.show{transform:none;opacity:1}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:.9rem 1.5rem;font-size:.62rem;color:var(--dim);display:flex;gap:1.5rem;flex-wrap:wrap}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--text)}
+
+@media(max-width:680px){
+  header{padding:0 1rem;gap:.8rem}
+  .hmeta>*:not(.btn){display:none}
+  main{padding:1rem 1rem 4rem}
+}
+</style>
+</head>
+<body>
+
+<!-- loading overlay -->
+<div id="ov">
+  <div class="ov-logo">SOL/RADAR</div>
+  <div class="ov-bar"><div class="ov-fill"></div></div>
+  <div class="ov-msg" id="ov-msg">Connecting to backend...</div>
+</div>
+
+<header>
+  <div class="logo">SOL<em>/</em>RADAR <em style="font-size:.65rem;margin-left:4px;opacity:.5">v2</em></div>
+  <div class="hbar"></div>
+  <div class="hmeta">
+    <span class="live"><span class="dot"></span><span id="live-txt">Connecting</span></span>
+    <span id="upd-txt" style="color:var(--dim)">—</span>
+    <span>Min MC <span style="color:var(--accent)">$25K</span></span>
+    <button class="btn btn-accent" id="rfbtn" onclick="load(true)">
+      <svg id="rficon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- stat cards -->
+  <div class="stats">
+    <div class="sc">
+      <div class="sc-label">Total Found</div>
+      <div class="sc-val" id="st-total">—</div>
+      <div class="sc-sub">MC ≥ $25K · age 1-24h</div>
+    </div>
+    <div class="sc sc-purple">
+      <div class="sc-label">1–3 hrs</div>
+      <div class="sc-val" id="st-1-3">—</div>
+      <div class="sc-sub">Hottest window</div>
+    </div>
+    <div class="sc sc-blue">
+      <div class="sc-label">3–6 hrs</div>
+      <div class="sc-val" id="st-3-6">—</div>
+      <div class="sc-sub">Early momentum</div>
+    </div>
+    <div class="sc sc-green">
+      <div class="sc-label">6–12 hrs</div>
+      <div class="sc-val" id="st-6-12">—</div>
+      <div class="sc-sub">Mid discovery</div>
+    </div>
+    <div class="sc sc-amber">
+      <div class="sc-label">12–18 hrs</div>
+      <div class="sc-val" id="st-12-18">—</div>
+      <div class="sc-sub">Continuation zone</div>
+    </div>
+    <div class="sc sc-red">
+      <div class="sc-label">18–24 hrs</div>
+      <div class="sc-val" id="st-18-24">—</div>
+      <div class="sc-sub">Late window</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">🔥 Viral (≥75)</div>
+      <div class="sc-val" id="st-viral" style="color:var(--viral)">—</div>
+      <div class="sc-sub">Social score</div>
+    </div>
+  </div>
+
+  <!-- viral legend -->
+  <div class="vlegend">
+    <span class="vlegend-label">Viral score:</span>
+    <span class="vbadge vb-viral">🔥 Viral ≥75</span>
+    <span class="vbadge vb-trending">📈 Trending ≥50</span>
+    <span class="vbadge vb-growing">🌱 Growing ≥30</span>
+    <span class="vbadge vb-low">💤 Low &lt;30</span>
+    <span style="font-size:.6rem;color:var(--dim);margin-left:6px">Score = vol velocity + momentum + boost signal + recency</span>
+  </div>
+
+  <!-- banner -->
+  <div id="banner" class="banner binfo" style="display:none"></div>
+
+  <!-- controls -->
+  <div class="controls">
+    <span class="ctrl-label">Sort:</span>
+    <button class="srt on"  onclick="setsort('mc',this)">Mkt Cap</button>
+    <button class="srt"     onclick="setsort('viralScore',this)">Viral Score</button>
+    <button class="srt"     onclick="setsort('volume24h',this)">Volume</button>
+    <button class="srt"     onclick="setsort('change1h',this)">1h Chg</button>
+    <button class="srt"     onclick="setsort('migratedMinsAgo',this)">Age</button>
+    <div class="spacer"></div>
+    <span style="font-size:.62rem;color:var(--dim)">Sources: GMGN · Pump.fun · DexScreener</span>
+  </div>
+
+  <!-- sections -->
+  <div id="s1-3"   class="section"></div>
+  <div id="s3-6"   class="section"></div>
+  <div id="s6-12"  class="section"></div>
+  <div id="s12-18" class="section"></div>
+  <div id="s18-24" class="section"></div>
+
+</main>
+
+<footer>
+  <span>SOL/RADAR — Solana migration tracker v2</span>
+  <span>Data: <a href="https://gmgn.ai" target="_blank">GMGN</a> · <a href="https://pump.fun" target="_blank">Pump.fun</a> · <a href="https://dexscreener.com" target="_blank">DexScreener</a></span>
+  <span>Not financial advice. DYOR.</span>
+  <span style="margin-left:auto" id="footer-ts"></span>
+</footer>
+
+<div id="toast">Address copied!</div>
+
+<script>
+const API = 'http://localhost:8888/api/coins';
+let coins = [], sortKey = 'mc', sortDir = -1;
+
+const CATS = [
+  { id:'1-3',   label:'1–3 hrs old',   cls:'a1-3',   desc:'Freshly migrated — hottest CT discovery window',   color:'var(--purple)' },
+  { id:'3-6',   label:'3–6 hrs old',   cls:'a3-6',   desc:'Early momentum — watch for breakout signals',       color:'var(--teal)'   },
+  { id:'6-12',  label:'6–12 hrs old',  cls:'a6-12',  desc:'Mid discovery — established with volume building',   color:'var(--green)'  },
+  { id:'12-18', label:'12–18 hrs old', cls:'a12-18', desc:'Continuation zone — track for fade or extension',   color:'var(--amber)'  },
+  { id:'18-24', label:'18–24 hrs old', cls:'a18-24', desc:'Late window — approaching 24h cutoff',              color:'var(--red)'    },
+];
+
+function fmt(v){
+  if(v>=1e9) return '$'+(v/1e9).toFixed(2)+'B';
+  if(v>=1e6) return '$'+(v/1e6).toFixed(2)+'M';
+  if(v>=1e3) return '$'+(v/1e3).toFixed(1)+'K';
+  return '$'+Math.round(v);
+}
+function age(m){ const h=Math.floor(m/60),r=m%60; return h?h+'h '+r+'m':r+'m'; }
+function short(a){ return a?a.slice(0,5)+'…'+a.slice(-4):'—'; }
+function cat(m){ const h=m/60; if(h>=1&&h<3)return'1-3';if(h>=3&&h<6)return'3-6';if(h>=6&&h<12)return'6-12';if(h>=12&&h<18)return'12-18';if(h>=18&&h<=24)return'18-24';return null; }
+
+function srcBadge(s){
+  const m={gmgn:['sg','GMGN'],'pump.fun':['sp','PUMP'],'dexscreener':['sd','DEX']};
+  const[c,l]=m[s]||['sd',s];
+  return `<span class="srcbadge ${c}">${l}</span>`;
+}
+
+function viralBadge(coin){
+  const map={4:['vb-viral','🔥 Viral'],3:['vb-trending','📈 Trending'],2:['vb-growing','🌱 Growing'],1:['vb-low','💤 Low']};
+  const[c,l]=map[coin.viralTier]||map[1];
+  return `<span class="vbadge-sm ${c}">${l}</span>`;
+}
+
+function viralCell(coin){
+  const pct=coin.viralScore;
+  const tc='vtier-'+coin.viralTier;
+  const boost=coin.boosted?`<span class="boost-icon" title="DexScreener boosted — active paid campaign">⚡</span>`:'';
+  return `<div class="vs-wrap ${tc}">
+    <span class="vs-num">${pct}</span>
+    <div class="vs-bar-bg"><div class="vs-bar" style="width:${pct}%"></div></div>
+    ${boost}
+  </div>
+  <div style="margin-top:3px">${viralBadge(coin)}</div>`;
+}
+
+function copyAddr(a){
+  navigator.clipboard.writeText(a).then(()=>{
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),1700);
+  });
+}
+
+function setsort(k,btn){
+  sortDir = (sortKey===k)? -sortDir : -1;
+  sortKey = k;
+  document.querySelectorAll('.srt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+function sorted(arr){
+  return [...arr].sort((a,b)=>{
+    const av=a[sortKey]??0, bv=b[sortKey]??0;
+    if(typeof av==='string') return sortDir*av.localeCompare(bv);
+    return sortDir*(bv-av);
+  });
+}
+
+function buildHead(){
+  const cols=[
+    {l:'Token',k:null},{l:'Mkt Cap',k:'mc'},{l:'1h Chg',k:'change1h'},
+    {l:'Volume 24h',k:'volume24h'},{l:'Liquidity',k:'liquidity'},
+    {l:'Viral / Social',k:'viralScore'},{l:'Migrated',k:'migratedMinsAgo'},
+    {l:'Source',k:'source'},{l:'Links',k:null}
+  ];
+  return '<thead><tr>'+cols.map(c=>{
+    const a=c.k===sortKey?'sa':'';
+    const click=c.k?`onclick="setsort('${c.k}',this)"`:'';
+    const arrow=c.k===sortKey?(sortDir>0?' ↑':' ↓'):'';
+    return `<th class="${a}" ${click}>${c.l}${arrow}</th>`;
+  }).join('')+'</tr></thead>';
+}
+
+function buildRows(list){
+  if(!list.length) return '<tbody><tr class="empty"><td colspan="9">No coins in this range above $25K MC</td></tr></tbody>';
+  const maxVol=Math.max(...list.map(c=>c.volume24h),1);
+  return '<tbody>'+list.map((c,i)=>{
+    const cc=c.change1h>0?'up':c.change1h<0?'dn':'neu';
+    const sign=c.change1h>0?'+':'';
+    const vp=Math.round(c.volume24h/maxVol*100);
+    return `<tr style="animation-delay:${i*.025}s">
+      <td>
+        <div class="tname">${c.name}<span class="tsym">$${c.symbol}</span></div>
+        <div class="taddr" onclick="copyAddr('${c.address}')" title="Click to copy">${short(c.address)}</div>
+        ${srcBadge(c.source)}
+      </td>
+      <td><span class="mc">${fmt(c.mc)}</span></td>
+      <td><span class="${cc}">${sign}${c.change1h.toFixed(1)}%</span></td>
+      <td>
+        <span class="liq">${fmt(c.volume24h)}</span>
+        <div class="vbar"><div class="vbarfill" style="width:${vp}%"></div></div>
+      </td>
+      <td><span class="liq">${fmt(c.liquidity)}</span></td>
+      <td>${viralCell(c)}</td>
+      <td style="color:var(--dim)">${age(c.migratedMinsAgo)} ago</td>
+      <td>${srcBadge(c.source)}</td>
+      <td>
+        <div class="links">
+          <a class="xl dx" href="${c.dexUrl}" target="_blank">Chart ↗</a>
+          <a class="xl gm" href="${c.gmgnUrl}" target="_blank">GMGN ↗</a>
+          <a class="xl tw" href="${c.twitterUrl}" target="_blank">𝕏 ↗</a>
+        </div>
+      </td>
+    </tr>`;
+  }).join('')+'</tbody>';
+}
+
+function render(){
+  // update stats
+  const totals={'1-3':0,'3-6':0,'6-12':0,'12-18':0,'18-24':0};
+  let viral=0;
+  coins.forEach(c=>{ const k=cat(c.migratedMinsAgo); if(k) totals[k]++; if(c.viralScore>=75) viral++; });
+  document.getElementById('st-total').textContent=coins.length;
+  document.getElementById('st-1-3').textContent=totals['1-3'];
+  document.getElementById('st-3-6').textContent=totals['3-6'];
+  document.getElementById('st-6-12').textContent=totals['6-12'];
+  document.getElementById('st-12-18').textContent=totals['12-18'];
+  document.getElementById('st-18-24').textContent=totals['18-24'];
+  document.getElementById('st-viral').textContent=viral;
+
+  // render each section
+  CATS.forEach(meta=>{
+    const list=sorted(coins.filter(c=>cat(c.migratedMinsAgo)===meta.id));
+    const el=document.getElementById('s'+meta.id);
+    const head=`<div class="section-head">
+      <span class="atag ${meta.cls}">${meta.label}</span>
+      <span class="sdesc">${meta.desc}</span>
+      <span class="scnt">${list.length} coin${list.length!==1?'s':''}</span>
+    </div>`;
+    const tbl=`<div class="tw"><table>${buildHead()}${buildRows(list)}</table></div>`;
+    el.innerHTML=head+tbl;
+  });
+}
+
+async function load(force=false){
+  const btn=document.getElementById('rfbtn');
+  const icon=document.getElementById('rficon');
+  btn.disabled=true; btn.classList.add('spin');
+  document.getElementById('ov-msg').textContent='Fetching from GMGN, Pump.fun, DexScreener...';
+  document.getElementById('ov').classList.remove('gone');
+
+  try{
+    const url=force?API+'?force=1':API;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('Server returned '+res.status);
+    const d=await res.json();
+    coins=d.coins||[];
+    const ts=new Date(d.ts*1000);
+    document.getElementById('live-txt').textContent='Live';
+    document.getElementById('upd-txt').textContent='Updated '+ts.toLocaleTimeString();
+    document.getElementById('footer-ts').textContent=ts.toLocaleString();
+
+    const banner=document.getElementById('banner');
+    if(d.sample){
+      banner.className='banner bwarn';
+      banner.style.display='flex';
+      banner.innerHTML='⚠ APIs returned no live data — showing sample data. The backend is running fine. APIs may be rate-limited; try refreshing in ~60s.';
+    } else {
+      banner.style.display='none';
+    }
+    render();
+  } catch(err){
+    document.getElementById('live-txt').textContent='Offline';
+    const banner=document.getElementById('banner');
+    banner.className='banner bwarn';
+    banner.style.display='flex';
+    banner.innerHTML=`⚠ Cannot reach backend. Make sure <code>server.py</code> is running. Error: ${err.message}`;
+  } finally{
+    btn.disabled=false; btn.classList.remove('spin');
+    document.getElementById('ov').classList.add('gone');
+  }
+}
+
+// auto-refresh every 90s
+setInterval(()=>load(false), 90_000);
+load(false);
+</script>
+</body>
+</html>
