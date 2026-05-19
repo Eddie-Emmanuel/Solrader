@@ -12,7 +12,8 @@ import json, time, urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 
-PORT      = 8888
+import os
+PORT = int(os.environ.get("PORT", 8888))
 MIN_MC    = 25_000
 CACHE_TTL = 60
 
